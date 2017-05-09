@@ -1,2 +1,4 @@
-Overvie
+Overview
+
+
 Prosper Marketplace is America’s first peer-to-peer lending marketplace, with over $7 billion in funded loans. Borrowers request personal loans on Prosper and investors (individual or institutional) can fund anywhere from $2,000 to $35,000 per loan request. In addition to credit scores, ratings, and histories, investors can consider borrowers’ personal loan descriptions, endorsements from friends, and community affiliations. Prosper handles the servicing of the loan and collects and distributes borrower payments and interest back to the loan investors.[https://en.wikipedia.org/wiki/Prosper_Marketplace].Here I used the data available to the public from the institution and analyse the borrower market (including the demographic segmentation and beyond) and try to let data tell some ‘behind scene’ stories about the borrowers.
