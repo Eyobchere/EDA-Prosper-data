@@ -1,0 +1,1050 @@
+---
+title: "Analysis of Prosper Loan Data"
+output: html_document
+---
+#Overview
+Prosper Marketplace is America's first peer-to-peer lending marketplace, with 
+over $7 billion in funded loans. Borrowers request personal loans on Prosper and 
+investors (individual or institutional) can fund anywhere from $2,000 to $35,000 
+per loan request. In addition to credit scores, ratings, and histories, 
+investors can consider borrowers’ personal loan descriptions, endorsements from 
+friends, and community affiliations. Prosper handles the servicing of the loan 
+and collects and distributes borrower payments and interest back to the loan 
+investors.[https://en.wikipedia.org/wiki/Prosper_Marketplace].Here I used the
+data available to the public  from the institution and analyse the borrower 
+market (including the demographic segmentation and beyond) and try to let data 
+tell some ‘behind scene’ stories about the borrowers.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,warning = FALSE, error = FALSE,
+                      message = FALSE,cache=TRUE)
+```
+
+
+```{r}
+
+df <- read.csv('prosperLoanData.csv')
+#str(df)
+
+```
+#UNIVARIAT ANALYSIS
+##Income distribution of borrowers
+```{r}
+
+library(ggplot2)
+library(gridExtra)
+library(dplyr)
+library(tidyr)
+#class(df$IncomeRange)
+#table(df$IncomeRange)
+df$IncomeRange <- factor(df$IncomeRange, levels = 
+ordered(c('$0','$1-24,999','$25,000-49,999', '$50,000-74,999',
+          '$75,000-99,999','$100,000+' )))
+ggplot(aes(x=IncomeRange),data =df)+geom_bar(size=6,fill='green3')
+
+#gplot(aes(x=IncomeRange),data = subset(df, (IncomeRange!='Not displayed' & IncomeRange!='Not employed')))+geom_bar(color='red',fill='maroon')
+#(df$IncomeRange))
+```
+
+
+The top borrowers are customers that have income ranges from $25,000-$49,999 
+followed by those with income range of  $50,000 - $74,999 and there are fewer zero
+income borrowers as well.
+
+##APR distribution
+
+```{r}
+
+ggplot(aes(x=BorrowerAPR),data=df)+
+geom_bar(binwidth = 0.02,color='red',fill='maroon') +
+geom_vline(xintercept = 0.21880, color='blue',linetype='dotted',size=1)+
+geom_text(aes(x=0.24, label="Mean APR", y=10000), colour="blue",
+          angle=90,text=element_text(size=11)) 
+ #summary(df$BorrowerAPR)
+#geom_vline(xintercept = 0.20980, color='blue',
+  #linetype='dotted',size=2)+geom_text(aes(x=0.2, label="Median APR", y=10000), 
+        #colour="dark green", angle=90,text=element_text(size=11))
+#median(df$BorrowerAPR,na.rm = TRUE)
+
+```
+```{r}
+print("The APR summary statistics is :")
+summary(df$BorrowerAPR)
+```
+
+
+
+The loan APR ranges from less than 5 % up to about 51 % though there are only 
+very few borrowers with such high and lower APR values. Most borrowers seems to 
+have a APR from 10 % upto 30 % with somehow a substantial amount of borrowers
+found to have APR value of ~ 36 %. The median APR value is ~21 %. 
+
+
+```{r}
+
+#hig_APR_rate <- filter(df,(BorrowerAPR>0.35 & BorrowerAPR<0.38))
+#ggplot(aes(x=BorrowerAPR),data = hig_APR_rate)+
+ # geom_bar(binwidth = 0.002,fill='dark red')
+
+```
+
+
+
+##Borrower Interest rate distribution
+
+```{r}
+ggplot(aes(x=BorrowerRate),data=df)+
+  geom_bar(binwidth = 0.02,color='blue',fill='green')+
+  #geom_vline( xintercept = mean(df$BorrowerRate),linetype='dotted',color='red',
+#size=1)+geom_text(aes(x=0.22, label="Average Borrower rate", y=9300), 
+#colour="red", angle=90,text=element_text(size=11))+
+  ylab('Number of borrowers')
+```
+
+
+```{r}
+print("The interest rate summary statistics is :")
+summary(df$BorrowerRate)
+```
+
+The borrower rate has roughly the same distribution as the borrower APR. 
+However, the maximum rate is less than 50 %.
+```{r}
+#ggplot(aes(x=BorrowerRate),data=df)+geom_bar(binwidth = 0.02,fill='blue')+
+#geom_vline( xintercept = mean(df$BorrowerRate),linetype='dotted',color='red',
+#size=1)+geom_text(aes(x=0.22, label="Average Borrower rate", y=9300), 
+#colour="red", angle=90,text=element_text(size=11))
+#ggplot(aes(x=log10(BorrowerRate+1)),data=df)+geom_histogram(binwidth = 0.001,fill='blue')
+```
+
+
+##Employment status 
+
+```{r}
+#class(df$EmploymentStatus)
+df$EmploymentStatus <- factor(df$EmploymentStatus,levels = 
+ordered(c('Not available','Other','Not employed',' Retired','Part-time',
+          'Self-employed','Full-time','Employed')))
+ggplot(aes(x=EmploymentStatus),data=df)+
+  geom_bar(color='dark green',fill='maroon',size=0.8)+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+#head(df$EmploymentStatus)
+#table(df$EmploymentStatus)
+```
+
+Most borrowers are employed and also there are few unemployed borrowers.
+It also shows full time employees have either higher chance of getting prosper 
+loan or most of the loan applicants are under this category. On the other hand,
+there are few unemployed and Part time borrowers.This could be, due to their 
+lower chance of getting approved to the loan because of their income or or 
+there are fewer number of loan applicants under these categories.
+
+## Loan status
+
+```{r}
+df$LoanStatus <- factor(df$LoanStatus, levels = 
+ordered(c("Cancelled","Chargedoff", "Completed", "Current", "Defaulted")))
+ggplot(aes(x=LoanStatus),data=subset(df,!is.na(LoanStatus)))+
+  geom_bar(fill='navyblue')
+df_defaulted_charged=table(subset
+(df$LoanStatus,(df$LoanStatus=='Defaulted'| df$LoanStatus=='Chargedoff')))
+x=data.frame(df_defaulted_charged)
+names(x)=c('LoanStatus', 'Percent')
+y=data.frame(table(df$LoanStatus))
+x$Percent= y$Freq/sum(y$Freq)*100
+#print(paste("Loan status by percent (%):",x))
+print( x)
+#x
+```
+
+Even though most of the loan is active and completed, about 10.739265 % of the
+total loan is Chargedoff and 4.493798 % is defaulted.
+
+## Loan Performance by credit score
+I categorized Chargedoff and Defaulted loans as non performing loans for 
+simplicity of analysis. 
+
+```{r}
+p1 <- ggplot(aes(x=CreditScoreRangeUpper),data=
+    subset(df, (LoanStatus =='Chargedoff' | LoanStatus == 'Defaulted')))+
+  geom_bar(fill='green2')+xlab('nonperforming upper credit score')#+scale_x_discrete(limits=c(0:850),breaks=seq(0,850,100))
+p2 <- ggplot(aes(x=CreditScoreRangeLower),data =
+subset(df, (LoanStatus=='Chargedoff' | LoanStatus == 'Defaulted')))+
+geom_bar(fill = 'green2')+xlab('nonperforming lower credit score')#+scale_x_discrete(limits=c(0,850),breaks=seq(0,850,150))
+p3 <- ggplot(aes(x=CreditScoreRangeLower),data=
+subset(df, !(LoanStatus=='Chargedoff' | LoanStatus == 'Defaulted')))+
+  geom_bar(fill='blue')+xlab('performing lower credit score')
+p4 <- ggplot(aes(x=CreditScoreRangeUpper),data =
+subset(df,!(LoanStatus=='Chargedoff' | LoanStatus == 'Defaulted')))+
+geom_bar(fill ='blue')+xlab('performing upper credit score')
+grid.arrange(p1,p2,p4,p3, ncol = 2)
+```
+
+From the distributions of credit score we can see that, there are non performing 
+borrowers across all credit scores from high to low. However, there are many 
+borrowers with lower credit scores (< ~ 600) fall under the credit score 
+distribution of non performing borrowers and relatively fewer borrowers with 
+lower credit scores (< ~ 600) fall under the performing distribution.  
+
+##Loan Performance by Income range
+
+```{r}
+p1 <- ggplot(aes(x=IncomeRange),data=
+subset(df, (LoanStatus=='Chargedoff' | LoanStatus=='Defaulted')))+
+geom_bar(fill='green2')+xlab('nonperforming income range')
+
+p2 <- ggplot(aes(x=IncomeRange),data=
+subset(df, !(LoanStatus=='Chargedoff' | LoanStatus=='Defaulted')))+
+geom_bar(fill='blue')+xlab('performing income range')
+grid.arrange(p1,p2,ncol=1)+theme(axis.text.x = element_text(angle = 90,hjust=1))
+```
+
+
+
+```{r}
+performing_df <- 
+  subset(df, !(LoanStatus=='Chargedoff' | LoanStatus=='Defaulted'))
+nonperforming_df <- 
+  subset(df, (LoanStatus=='Chargedoff' | LoanStatus=='Defaulted'))
+performing <- table(performing_df$IncomeRange)
+performing_borrower=data.frame(performing)
+names(performing_borrower) <- 
+  c('IncomeRange','NumberOfPerformingBorrowers')
+nonperforming <- table(nonperforming_df$IncomeRange)
+nonperforming_borrower=data.frame(nonperforming)
+names(nonperforming_borrower) <- 
+  c('IncomeRange','NumberOfNonperformingBorrowers')
+#print(performing)
+#print(nonperforming)
+pn_borrowers <- 
+data.frame(performing_borrower,
+    nonperforming_borrower$NumberOfNonperformingBorrowers)
+names(pn_borrowers) <- 
+  c('IncomeRange','PerformingCount','NonPerformingCount')
+#pn_borrowers<- pn_borrowers[-Var1.1]
+pn_borrowers$NonPerformingPercentage <- 
+  round(pn_borrowers$NonPerformingCount/
+(pn_borrowers$PerformingCount+pn_borrowers$NonPerformingCount)*100,2)
+pn_borrowers
+```
+
+
+From this chart we can see an interesting trend of increasing performance with 
+increasing income range. This could be explained by, borrowers with good incomes 
+are more likely to pay their loans off. It is interesting to find that borrowers 
+with no income are the most non performing borrowers (38.25 %) followed by
+borrowers with income ranges from $1-$24,999 (23.4 %) compared to all borrowers 
+with registered income ranges.
+
+
+
+## Loan duration
+```{r}
+#table(df$Term)
+ggplot(aes(x=as.factor(Term)),data=subset(df,!is.na(Term)))+
+  geom_bar(fill='deepskyblue2')+xlab("Term")
+```
+
+It is clear that Most of the borrowers are under the 3 year loan period
+and relatively small number of borrowers borrowed for the 12 month period.
+
+
+```{r}
+
+df$ProsperRating..Alpha.=factor(df$ProsperRating..Alpha.,levels =
+      ordered(ordered(c('AA','A','B','C', 'D','E','HR',""))))
+cc <- ordered(c('AA','A','B','C', 'D','E','HR'))
+#print(cc)
+ggplot(aes(x=ProsperRating..Alpha.),data=
+subset(df,ProsperRating..Alpha. %in% 
+ordered(c('AA','A','B','C', 'D','E','HR'))))+ 
+  geom_bar(color='green',fill='dark green')                                            
+```
+
+The Prosper rating distribution is almost normal with C the most freqent rating 
+and AA the least frequent rating.
+
+##Loan origination by quarter year
+
+```{r}
+#table(df$LoanOriginationQuarter)
+df$LoanOriginationQuarter_string <- as.character(df$LoanOriginationQuarter)
+#head(df$LoanOriginationQuarter_string)
+myfunction <- function(x){
+  value1 <- substr(x,1,2)
+  value2 <- substring(x,3)
+  value <- rev(c(value1,value2))
+  v <- paste(value,collapse = " ")
+  return(v)
+}
+df$LoanOriginationQuarter_new=
+  apply(df['LoanOriginationQuarter_string'],1, myfunction)
+#table(df$LoanOriginationQuarter_new)
+library(zoo)
+df$LoanOriginationQuarter_new <- as.yearqtr(df$LoanOriginationQuarter_new)
+ggplot(aes(x=LoanOriginationQuarter_new ),data=df)+
+geom_bar(color='red',fill='dark blue')+scale_x_yearqtr(format = "%YQ%q" , 
+limit =c(as.yearqtr('2006 Q1'),as.yearqtr('2014 Q4')))+
+  geom_freqpoly( size=0.8,color='dark green')+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+There is abig dip in listings from  2008 Q4 into 2009. This time period 
+coincides with the collapse of Lehman brothers and the fallout of the global 
+financial system.
+
+#BIVARIAT ANALYSIS
+
+## Total loan amount by state where number of borrowers >1000 
+
+
+```{r}
+create_histogram <- function(variable1,variable2, binwidth = 0.1,...) {
+  return(ggplot(aes_string(x = variable1,y=variable2), data = By_state_summary_high) + 
+           geom_histogram(binwidth = binwidth))
+}
+```
+
+```{r}
+#table(df$BorrowerState)
+By_state <- group_by(df,BorrowerState)
+By_state_summary <- 
+  summarise(By_state,LoanOriginalAmount=sum(LoanOriginalAmount),n=n())
+By_state_summary <- arrange(By_state_summary,BorrowerState)
+By_state_summary$AverageLoanPerPerson <-
+  By_state_summary$LoanOriginalAmount/By_state_summary$n
+#print(factor(By_state_summary$BorrowerState))
+#head(By_state_summary)
+By_state_summary_high <- filter(By_state_summary, n>1000)
+By_state_summary_low <- filter(By_state_summary, n<200)
+ggplot(aes(x=BorrowerState,y=LoanOriginalAmount),data=
+subset(By_state_summary_high,By_state_summary_high$BorrowerState!=""))+
+geom_histogram(stat = "identity",binwidth =0.1,fill='blue4')+
+ylab('Total loan amount by state')+xlab('State')
+#create_histogram(BorrowerState,LoanOriginalAmount,By_state_summary_high,binwidth = 0.1)#+geom_histogram()
+```
+
+
+
+
+```{r}
+ggplot(aes(x=BorrowerState,y=n),data=
+  subset(By_state_summary_high,By_state_summary_high$BorrowerState!=""))+
+  geom_histogram(stat = "identity",binwidth =0.1,fill='green4')+
+  ylab('Number of borrowers')+xlab('State')+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+I categorized the states as high loan and low loan states by number of borrowers
+(number of borrowers in thestate >1000 and number of borrowers in the state 
+< 200). The above two distributions show the total loan amount and number of 
+borrowers of the high loan states. As we can see from the histograms, CA,TX,NY 
+and FL are the top states by total loan amount. 
+This is consistent with the number of borrowers and I found it is related to the 
+population size of the states. In order to check whether this high total 
+loan amount is related to the population of the states I normalized the total 
+loan amount by the total number of borrowers as the average loan amount per
+person as shown below.
+
+## Average loan amount per person
+
+```{r}
+
+ggplot(aes(x=BorrowerState,y=AverageLoanPerPerson),data=
+subset(By_state_summary_high,By_state_summary_high$BorrowerState!=""))+
+geom_histogram(stat = "identity",binwidth =0.1,fill='blue4')+
+ylab('Average loan amount per person')+
+xlab('State')+theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+
+From the above histogram, we can see that the average loan per person 
+distribution is almost kind of flat and interestingly the normalized loan amount 
+of CA, TX, NY, and FL is less than the the normalized loan amount of some states 
+like NJ and MA. Therefore the higher total loan amount in larger states is
+related to the size of their populations.
+
+
+## States with least number of borroers (< 200)
+
+```{r}
+
+ggplot(aes(x=BorrowerState,y=n),data=By_state_summary_low)+
+  geom_histogram(stat = "identity",binwidth =0.1,fill='purple4')+
+  ylab('Number of borrowers')+xlab('State')+geom_text(stat='identity',
+aes(label=LoanOriginalAmount),angle=0,color='black',
+position=position_dodge(width=0.9), vjust=0)
+
+```
+
+```{r}
+ggplot(aes(x=BorrowerState,y=LoanOriginalAmount),data=
+subset(By_state_summary_low,By_state_summary_low$BorrowerState!=""))+
+geom_histogram(stat = "identity",binwidth =0.1,fill='blue1')+
+ylab('Loan Amount')+xlab('State')+geom_text(stat='identity',
+aes(label=LoanOriginalAmount),angle=0,color='black',
+position=position_dodge(width=0.9), vjust=0)
+```
+
+
+```{r}
+ggplot(aes(x=BorrowerState,y=AverageLoanPerPerson),data=subset(By_state_summary_low,By_state_summary_low$BorrowerState!=""))+geom_histogram(stat = "identity",binwidth =0.1,fill='blue4')+ylab('Average loan amount per person')+xlab('State')
+```
+
+It is interesting that 5 states (IA, ME,ND, SD, WY) have the  least number of borrowers.
+
+
+```{r}
+library(ggmap)
+#mydata <- as.character(df$BorrowerState)
+#df$BorrowerState
+#m=matrix(df$BorrowerState,ncol=1)
+#m=as.data.frame(m)
+#colnames(m)=c("state")
+#mydata <- data.frame(df$LoanOriginalAmount,m) 
+#mydata$State <- as.character(mydata$state)
+#mydata <- mydata[-2]
+#mydata=mydata[1:1000,]
+#mydata
+#mydata <- subset(mydata,State!='""')
+#mydata$State.full <- state.name[match(mydata$State,state.abb)]
+# map data is in lower case
+#mydata$State.full <- tolower(mydata$State.full)
+# create a region column from the full state name to make merging easier
+#mydata$region <- mydata$State.full
+#all_states <- map_data("state")
+# merge map data with my data
+#map.df <- merge(all_states, mydata, by="region")
+# important, order data or you get v. odd results
+#map.df <- map.df[order(map.df$order),]
+#ggplot(map.df, aes(x=long,y=lat,group=group))+
+  #geom_polygon(aes(fill=df.LoanOriginalAmount))+
+  #geom_path()+ 
+  #scale_fill_gradientn(colours=rev(heat.colors(10)),na.value="grey90")+
+  #coord_map()
+#for(i in 1:nrow(mydata))
+#for(i in 1:1000){
+#  latlon <- geocode(mydata[i,2])
+ # mydata$lon[i] <- as.numeric(latlon[1])
+#  mydata$lat[i] <- as.numeric(latlon[2])
+#}
+#mydata
+#mydf <- data.frame(df$LoanOriginalAmount[1:1000],mydata$lon,mydata$lat)
+#colnames(mydf)=c('LoanAmount','lon','lat')
+#mydf
+#usa_center = as.numeric(geocode("United States"))
+#USAMap = ggmap(get_googlemap(center=usa_center, scale=2, zoom=4), extent="normal")
+#USAMap+geom_point(aes(x=lon, y=lat), data=mydf, col="orange", alpha=0.4, size=mydf$LoanAmount*circle_scale_amt*0.001)+scale_size_continuous(range=range(mydf$LoanAmount))
+#mydf
+
+
+#map<-get_map(location='united states', zoom=4, maptype = "terrain",
+            # source='google',color='color')
+#ggmap(map) + geom_point(
+       # aes(x=lon, y=lat, show_guide = TRUE, colour='blue',alpha=0.4), 
+        #data=mydf, na.rm = T)  + 
+        #scale_color_gradient(low="beige", high="blue")
+#class(df$BorrowerState)
+```
+
+##Loan Amount by quarter year
+
+```{r}
+ggplot(data=df, aes(x=LoanOriginationQuarter_new,y=LoanOriginalAmount))+
+geom_histogram(stat = "identity",binwidth =0.1,alpha=0.25,color='blue',
+alpha=0.01)+scale_x_yearqtr(format = "%YQ%q" , limit =c(as.yearqtr('2006 Q1'),
+as.yearqtr('2014 Q4')))
+
+```
+
+The loan amount shows generally an increasing pattern  especially since the 
+fourth quarter of 2009.
+
+## Estimated Effective Yield, EstimatedReturn and Estimated Loss 
+
+```{r}
+p1 <- ggplot(data=df, aes(x=EstimatedEffectiveYield,y=EstimatedReturn))+
+  geom_point(color='blue',alpha=0.1)+geom_smooth(color='dark red')
+#+scale_x_yearqtr(format = "%YQ%q" , limit =c(as.yearqtr('2006 Q1'),as.yearqtr('2014 Q4')))
+p2 <- ggplot(data=df, aes(x=EstimatedLoss,y=EstimatedReturn))+
+  geom_point(color='red',alpha=0.1)+geom_smooth(color='dark blue')
+grid.arrange(p1,p2,ncol=2)
+```
+
+The estimated return increses with increasing estimiated effective yield and 
+decreases with increasing estimated loss.
+
+
+
+
+
+
+
+
+```{r}
+#ggplot(aes(x=LoanOriginalAmount,y=ProsperPrincipalBorrowed),data=df)+geom_point(color='dark red')#+scale_x_yearqtr(format = "%YQ%q" , limit =c(as.yearqtr('2006 Q2'),as.yearqtr('2014 Q2')))
+
+```
+##Monthly payments with loan amount
+
+```{r}
+ggplot(aes(x=LoanOriginalAmount,y=MonthlyLoanPayment),data=df)+
+  geom_point(color='blue',alpha=1/2)#+scale_x_yearqtr(format = "%YQ%q" , limit =c(as.yearqtr('2006 Q2'),as.yearqtr('2014 Q2')))
+#class(df$Term)
+```
+
+ The monthly payment increases with the amount borrowed. This is expected since
+ borrowers with higher loans need to pay more to pay off their debt in the 
+ specified loan period.
+
+
+```{r}
+#Interest rate and credit score relationship
+#p1 <- ggplot(aes(x=CreditScoreRangeLower,y=BorrowerRate/1000),data=df)+geom_hist(stat = "identity",alpha=1/10,color='maroon')+scale_x_continuous(limits=c(0,900),breaks = seq(0,900,100))
+#p2 <- ggplot(aes(x=CreditScoreRangeUpper,y=BorrowerRate/1000),data=df)+geom_histogram(stat = "identity",alpha=1/10,color='blue')+scale_x_continuous(limits=c(0,900),breaks = seq(0,900,100))
+#p4 <- ggplot(aes(x=CreditScoreRangeLower,y=mean(BorrowerRate)/1000),data=df)+geom_histogram(stat = "identity",color='blue')+scale_x_continuous(limits=c(0,900),breaks = seq(0,900,100))
+#p3 <- ggplot(aes(x=CreditScoreRangeUpper,y=mean(BorrowerRate)/1000),data=df)+geom_histogram(stat = "identity",color='blue')+scale_x_continuous(limits=c(0,900),breaks = seq(0,900,100))
+
+
+#grid.arrange(p1,p2,p4,p3, ncol=2)
+#Most borrowers have credit scores from ~500 t0 800. It seems the interest rate is high for borrowers with credit scores 500-700 and lower for borrowers with credit score > 800. 
+```
+
+
+
+```{r}
+##Apr and credit score relationship
+ #ggplot(aes(x=CreditScoreRangeLower),data=df)+geom_histogram(aes(fill=BorrowerAPR))+scale_x_continuous(limits=c(0,900),breaks = seq(0,900,100))
+#p2 <- ggplot(aes(x=CreditScoreRangeLower),data=df)+geom_histogram(aes(fill=BorrowerAPR))+scale_x_continuous(limits=c(0,900),breaks = seq(0,900,100))
+
+#grid.arrange(p1,p2, ncol=1)
+
+```
+
+
+```{r}
+#ggplot(aes(x=CreditScoreRangeLower,y=BorrowerRate,color=EmploymentStatus),data=df)+geom_point(alpha=1/10)+scale_x_continuous(limits=c(0,900),breaks = seq(0,900,100))
+ #ggplot(aes(x=DebtToIncomeRatio,y=EstimatedReturn),data=df)+geom_point(color='chartreuse4',alpha=0.5)+geom_smooth()#+scale_x_continuous(limits=c(0,900),breaks = seq(0,900,100))
+```
+
+##Estimated loss and Prosper rating
+
+```{r}
+df$ProsperRating..Alpha. <- factor(df$ProsperRating..Alpha., levels = 
+  ordered(rev(c('AA','A', 'B','C','D','E','HR'))))
+ggplot(aes(x=ProsperRating..Alpha., y=EstimatedLoss),
+       data=subset(df,!is.na(ProsperRating..Alpha.)))+
+geom_boxplot(aes(fill=ProsperRating..Alpha.))+
+  guides(fill=guide_legend(title = 'Rating'))
+#unique(df$ProsperRating..Alpha.)
+```
+
+The estimated loss is low for borrowers with good prosper rating and high for 
+those with bad prosper rating.
+
+#Prosper rating and credit score 
+
+```{r}
+df$ProsperRating..Alpha. <- factor(df$ProsperRating..Alpha., levels = 
+                              ordered(rev(c('AA','A', 'B','C','D','E','HR'))))
+p1 <- ggplot(aes(x=ProsperRating..Alpha., y=CreditScoreRangeLower),
+             data=subset(df,!is.na(ProsperRating..Alpha.)))+
+  geom_boxplot(aes(fill=ProsperRating..Alpha.))+
+  guides(fill=guide_legend(title = 'Rating'))
+p2 <- ggplot(aes(x=ProsperRating..Alpha., y=CreditScoreRangeUpper),
+             data=subset(df,!is.na(ProsperRating..Alpha.)))+
+  geom_boxplot(aes(fill=ProsperRating..Alpha.))+
+  guides(fill=guide_legend(title = 'Rating'))
+grid.arrange(p1,p2,ncol=1)
+```
+
+The plots show that, borrowers with good prosper ratings have higher credit 
+scores and those with bad ratings have realtively lower credit scores.
+
+#APR and Prosper rating
+
+```{r}
+ggplot(aes(ProsperRating..Alpha.,y=BorrowerAPR),data = 
+         subset(df,!is.na(ProsperRating..Alpha.)))+
+geom_boxplot(aes(fill=ProsperRating..Alpha.))
+```  
+
+Similarly, borrowers with good prosper rating have lower APRs and those with 
+bad ratings have high APRs.
+
+
+#APR and interest rate
+```{r}
+ggplot(aes(x=BorrowerAPR,y=BorrowerRate),data=df)+geom_point(fill=I('#F79420'),
+                                                             color=I('black'),shape=21,alpha=0.5)+geom_smooth(method='lm',color='dark green')
+```
+
+```{r}
+print("The summary statistics of borrower APR is ")
+summary(df$BorrowerAPR)
+print("The summary statistics of borrower rate is ")
+summary(df$BorrowerRate)
+```
+
+
+The borrower APR and rate are linearly related. The average APR and rate 
+are ~ 22% and 19 % respectively. The minimum  0 % interest rate is  
+strange and needs to be investigated further.
+
+```{r}
+ggplot()+geom_line(aes(x=CreditScoreRangeLower,y=BorrowerAPR,color='APR'),
+    data=df, stat="summary", fun.y=mean,linetype='dotted',size=1.0)+
+  geom_smooth()+
+geom_line(aes(x=CreditScoreRangeLower,y=BorrowerRate,color='RATE'),
+      data=df,stat="summary", fun.y=mean,linetype='solid',size=1.0)+
+     ylab("Borrower APR and Rate")
+  
+```
+
+Over all the Borrower APR and interest rate have inverse relation with credit 
+score.
+
+##Loan Amount vs loan term
+```{r}
+ggplot(aes(x=Term,y=LoanOriginalAmount),data = df)+
+  geom_boxplot(aes(fill=factor(Term)))+
+  stat_summary(fun.y=mean, geom="point", shape=8)#+geom_text(aes(x=24, label=" * Average Loan Original amount", y=25000), colour="blue", angle=90,text=element_text(size=10))
+```
+
+```{r}
+summary(df$LoanOriginalAmount)
+```
+
+It is clear that borrowers who owe larger loan amounts borrow for longer 
+durations. This is expected since they need longer time to pay off their loans 
+or otherwise need to pay higher monthly paymemnts with shorter loan terms. 
+The stars in the boxes show the average loan amount. From the summary statistics 
+we can see the average loan amount is $8337  and the loan amount ranges from 
+$1000 to $35000.
+
+```{r}
+#ggplot(aes(x=factor(Term),y=df$LenderYield),data = df)+geom_boxplot(aes(color=factor(Term)))+stat_summary(fun.y=mean, geom="point", shape=4)
+```
+
+#MULTIVARIATE ANALYSIS
+
+
+##Monthly payement by total loan and term
+
+```{r}
+ggplot(aes(x=LoanOriginalAmount,y=MonthlyLoanPayment),data=df)+
+  geom_point(aes(color=factor(Term)),alpha=1/2)
+
+```
+
+```{r}
+summary(df$MonthlyLoanPayment)
+```
+
+The monthly payment increases with loan amount. For the same loan amount 
+the monthly payment amount is higher for shorter terms. This is expected 
+since borrowers need to pay higher monthly payments in order to payoff 
+the balance with in shorter terms. From the summary statistics we can see that 
+the average monthly payment is ~ $272, and the maximum monthly payment is 
+$2252. The minimum monthly payment which is 0.0 is clearly an outlier associated
+with cancelled loans. 
+
+
+## Borrower classification by loan range and loan term?
+
+```{r}
+df$LoanRange <- cut(as.numeric(as.character(df$LoanOriginalAmount)),breaks =
+                      seq(0, 35000, by = 5000))
+df$LoanRange <- factor(df$LoanRange,levels=c('(0,5e+03]',   '(5e+03,1e+04]',
+'(1e+04,1.5e+04]', '(1.5e+04,2e+04]', '(2e+04,2.5e+04]', '(2.5e+04,3e+04]', 
+'(3e+04,3.5e+04]' ),ordered=TRUE)
+k=table(df$LoanRange)
+kk=data.frame(k)
+colnames(kk)=c('Loan_range','Number_of_borrowers')
+print(kk)
+
+ggplot(aes(x=LoanRange),data =df)+geom_bar(aes(fill=factor(Term)))+
+ylab("Number of borrowers ")+xlab('Loan range')+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))#+geom_freqpoly()
+#+scale_x_yearqtr(format = "%YQ%q" , limit =c(as.yearqtr('2006 Q1'),as.yearqtr('2014 Q4')))
+```
+
+
+It is clear to see that most borrowers have loans in the range from 1-5000 for 
+aperiod of 36 months. Generallly most borrowers borrowed for 36 and 60 months 
+and there are no borrowers borrowed more than 15000 for a period of 12 months.
+
+##Distribution of  borrowers by loan range and employment status? 
+
+```{r}
+ggplot(aes(x=LoanRange),data =subset(df,!is.na(EmploymentStatus)))+
+  geom_bar(aes(fill=factor(EmploymentStatus)))+
+  ylab("Number of borrowers ")+xlab('Loan range')+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))#+facet_wrap(~ Term)
+#ggplot(aes(x=Loan_range,y=Number_of_borrowers,na.rm=TRUE),data=kk)+geom_boxplot(aes(fill=factor(Loan_range)))
+#df$EmploymentStatus
+```
+
+
+It is interesting to see that most prosper loan amounts are in the range 
+of 0,5000 followed by 5000 - 10,000 and most borrowers are employed. 
+
+##Effective yield with rating and term
+
+```{r}
+
+ggplot(aes(ProsperRating..Alpha.,y=EstimatedLoss),data = subset(df,!is.na(ProsperRating..Alpha.)))+geom_boxplot(aes(fill=factor(Term)))+
+xlab('Prosper rating')+ylab('Estimated loss')
+```
+
+```{r}
+summary(df$EstimatedLoss)
+```
+
+
+The estimated loss increases with decreasing prosper rating. For same proper
+rating of (E,D,C,B), the median estimated loss is a little bit higher with 
+shorter loan periods and vice versa for A and AA ratings. The average estimated 
+loss is 8 % and the maximum estimated loss is 36.6 %.
+
+##APR with term and rating
+```{r}
+ggplot(aes(ProsperRating..Alpha.,y=BorrowerAPR),data = subset(df,!is.na(ProsperRating..Alpha.)))+geom_boxplot(aes(fill=factor(Term)))
+``` 
+
+The borrower APR  decreases with increasing prosper rating grade. At the same 
+rating, for boorrowers with lower rating (ratings E,D,C and B), the median 
+borrower APR decreases with loan period and increases with loan period for
+borrowers with rating A and AA.
+
+
+
+```{r}
+ggplot(aes(ProsperRating..Alpha.,y=EstimatedEffectiveYield),data =
+         subset(df,!is.na(ProsperRating..Alpha.)))+
+  geom_boxplot(aes(fill=factor(Term)))+
+  xlab('Prosper rating')+ylab('Estimated effective yield')
+```
+
+
+```{r}
+summary(df$EstimatedEffectiveYield)
+```
+
+
+The estimated effective yield obtained from borrowers with lower prosper 
+ratings is generally higher. This might be due to the fact that there are
+fewer customers with good ratings and also the APR and rate is higher for 
+the borrowers with lower prosper ratings as we have already seen.  
+Insterestingly, for borrowers with the same rating, the estimated yield 
+increases with increasing loan period. This is also explained by the fact 
+that the more borrowers stayed in the loan the more interest they would pay 
+and hence increase the estimated effective yield. The all over average 
+estimated effective yield is ~ 17 % which is close to the difference between
+average estimated return and average estimated loss.
+
+
+
+
+
+```{r}
+#library(ggmap)
+#aggregate(x$Frequency, by=list(Category=x$Category), FUN=sum)
+#loanByState <- aggregate(df$LoanOriginalAmount,by=list(BorrowerState=df$BorrowerState),FUN=sum)
+#loanByState_total <- summarise(loanByState,LoanOriginalAmount=sum(LoanOriginalAmount),state= levels(BorrowerState),n=n())
+#loanByState_ <- arrange(loanByState_total,BorrowerState)
+#usa_center = as.numeric(geocode("United States"))
+#USAMap = ggmap(get_googlemap(center=usa_center, scale=2, zoom=4), extent="normal")
+#USAMap+geom_point(aes(x=lon, y=lat), data=mydf, col="orange", alpha=0.4, size=mydf$LoanAmount*circle_scale_amt*0.001)+scale_size_continuous(range=range(mydf$LoanAmount))
+#names(loanByState)=c('BorrowerState','TotalLoanAmount')
+#loanByState$BorrowerState <- as.character(loanByState$BorrowerState)
+#for(i in 1:nrow(loanByState))
+#{
+#  latlon <- geocode(loanByState[i,1])
+#  loanByState$lon[i] <- as.numeric(latlon[1])
+# loanByState$lat[i] <- as.numeric(latlon[2])
+#}
+#names(loanByState)=c('BorrowerState','TotalLoanAmount','lon','lat')
+#ggplot(aes(x=BorrowerState,y=TotalLoanAmount),data = loanByState)+geom_histogram()
+```
+
+```{r}
+library(ggmap)
+#usa_center = as.numeric(geocode("United States"))
+#USAMap = ggmap(get_googlemap(center=usa_center, scale=2, zoom=4), extent="normal")
+#ggplot(aes(x=BorrowerState,y=TotalLoanAmount),data = loanByState)+geom_boxplot()
+#USAMap+geom_point(aes(x=lon, y=lat), data=loanByState, col="orange", alpha=0.4, size=loanByState$TotalLoanAmount*circle_scale_amt)+scale_size_continuous(range=range(loanByState$TotalLoanAmount))
+```
+
+
+
+
+```{r}
+loan_group <- group_by(df, LoanOriginationQuarter_new,BorrowerState)
+loan_group_total <- 
+summarise(loan_group,LoanOriginalAmount= sum(LoanOriginalAmount),n=n())
+loan_group_total <- 
+arrange(loan_group_total,LoanOriginationQuarter_new,BorrowerState)
+#loan_group_total
+#ggplot(aes(x=LoanOriginationQuarter_new,y=LoanOriginalAmount),data=subset(loan_group_total,LoanOriginalAmount>6000))+geom_line(aes(color=factor(BorrowerState)))+facet_wrap(~BorrowerState)+scale_x_yearqtr(format = "%YQ%q" , limit =c(as.yearqtr('2013 Q1'),as.yearqtr('2014 Q1')))
+```
+
+
+## Average loan amount per quarter year
+ 
+ 
+```{r}
+ggplot(aes(x=LoanOriginationQuarter_new,y=LoanOriginalAmount),data=df)+
+  geom_bar(aes(fill=factor(Term)), stat="summary", fun.y=mean)+#facet_wrap(~Term)+
+scale_x_yearqtr(format = "%YQ%q" , limit =c(as.yearqtr('2006 Q1'),
+as.yearqtr('2014 Q4')))+ylab('Average Loan Original Amount')+xlab('Year')#+geom_smooth(method='lm')
+
+```
+
+
+The loan amount  borrowed until the third quarter of 2010  was less than $10000
+and was only for a period of 36 months. It is interesting to see that both
+higher loan amount of more than 10000 and flexible payment plans were 
+introduced after the fourth quarter of 2010.
+
+
+```{r}
+#ggplot(aes(x=LoanOriginationQuarter_new,y=df$),data=df)+geom_line(aes(color=factor(Term)), stat="summary", fun.y=mean)+facet_wrap(~Term)+scale_x_yearqtr(format = "%Y" , limit =c(as.yearqtr('2006 Q1'),as.yearqtr('2014 Q4')))+ylab('Average Loan Original Amount')+xlab('Year')
+```
+ 
+## Average APR by quarter year and home owner
+
+```{r}
+ggplot(aes(x=LoanOriginationQuarter_new,y=BorrowerAPR),data =df)+
+  geom_density(aes(fill=IsBorrowerHomeowner), stat="summary", fun.y=mean)+
+scale_x_yearqtr(format = "%YQ%q" , limit =c(as.yearqtr('2006 Q1'),
+as.yearqtr('2014 Q4')))+ylab("Average APR")+
+theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+The average APR of home owners is  less than the others over  the whole year.
+This might be associated with the credit history of the borrowers. 
+
+## Credit score 
+
+```{r}
+ggplot(aes(x=LoanOriginationQuarter_new,y=CreditScoreRangeUpper),data =df)+
+  geom_line(aes(color=IsBorrowerHomeowner), stat="summary", fun.y=mean,linetype='dotted',size=1.8)+geom_smooth(aes(colour="smooth fit"))+
+scale_x_yearqtr(format = "%YQ%q",limit =c(as.yearqtr('2006 Q1'),
+as.yearqtr('2014 Q4')))+ylab("Average Upper Credit score")
+```
+
+The average credit score of borrowers with home owners is above 650 over 
+the whole year. 
+
+```{r}
+#ggplot(aes(x=LoanOriginationQuarter_new,y=EstimatedEffectiveYield),data =df)+geom_line(aes(color=factor(IsBorrowerHomeowner)), stat="summary", fun.y=mean,size=0.7)+geom_smooth(linetype=14,color='dark blue',text='smooth fit')+scale_x_yearqtr(format = "%YQ%q" , limit =c(as.yearqtr('2006 Q1'),as.yearqtr('2014 Q4')))+ylab("Average Estimated Effective Yield")
+```
+
+## Average estimated loss and borrower rate 
+
+```{r}
+ggplot(aes(x=log10(BorrowerRate+1),y=EstimatedLoss),data=
+subset(df,!is.na(IncomeRange)))+
+geom_jitter(alpha=0.5, position=position_jitter(h=0),aes(color=factor(Term)), 
+stat="summary", fun.y=mean,size=0.7)+geom_smooth(aes(color='smooth fit'))+
+ylab('Average Estimated Loss')#+xlim(0,20000)#+scale_x_yearqtr(format = "%YQ%q" , limit =c(as.yearqtr('2006 Q1'),as.yearqtr('2014 Q4')))+ylab("Average Estimated Loss")
+```
+
+It is interesting to see that the average estimated loss is higher for
+borrowers with higher interest rates.
+
+
+
+```{r}
+#ggplot(aes(x=LoanOriginationQuarter_new,y=LP_GrossPrincipalLoss),data=df)+geom_line(aes(color=factor(IsBorrowerHomeowner)), stat="summary", fun.y=mean,size=0.7)+geom_smooth(linetype=21,color='dark blue',aes(colour='smooth fit'))+scale_x_yearqtr(format = "%YQ%q" , limit =c(as.yearqtr('2006 Q1'),as.yearqtr('2014 Q4')))+ylab("Average LP_Gross Principal Loss")
+```
+
+## Correlation between different  variables
+
+```{r}
+#head(df$EstimatedEffectiveYield)
+new_df <- df[, c("EstimatedEffectiveYield","EstimatedLoss","EstimatedReturn",
+"ProsperRating..numeric.", "EmploymentStatusDuration","CreditScoreRangeLower")]
+#drops <- c("BorrowerState","Occupation","CurrentlyInGroup","GroupKey",
+ #          "DateCreditPulled",'ProsperRating..Alpha.','EmploymentStatus','IsBorrowerHomeowner','FirstRecordedCreditLine','IncomeRange','IncomeVerifiable')
+#new_df <-new_df[,!names(new_df) %in% drops]
+#print(length(names(new_df)))
+#head(new_df)
+library("corrplot")
+m <- cor(na.omit(new_df))#[,1:8])
+corrplot(m,method = 'number')
+
+```
+
+From the above correlation table we can see, there is a strong negative 
+relatioship between  prosper rating and estimated loss. 
+
+## Predicting estimated return using multivariat regression
+
+```{r}
+new_df <- na.omit(new_df)
+y=new_df$EstimatedReturn[1:60000]
+ddf=new_df[,-which(names(new_df)=='EstimatedReturn')]
+ddf2=ddf[1:60000,]
+ddf3=ddf[60001:77000,]
+#ddf2$xx=seq(0.001,600,0.01)
+fit <- lm(y~ ., data=ddf2)
+ddf2$pred <- predict(fit,data=ddf3)
+summary(fit)
+p1 <- ggplot(aes(x=y,y=pred),data = ddf2)+geom_point(fill=I('#F79420'),
+  color=I('black '),shape=21,alpha=0.8)+geom_smooth(method='lm')+ 
+  xlab('Training estimated return')+ylab('Predicted estimated return ')
+p1
+#grid.arrange(p1,p2,ncol=2)
+#plot(y,data = ddf2,color='red')
+#plot(pred,data=ddf2,c0.olor='blue')#+geom_point(aes(fill='blue'))
+```
+
+I used multivariat linear regression to see how the estimated return related to  
+other variables describing the borrowers. The detail results of the model is 
+described in the summary. Though the model is not well tunned, it explains up
+to 69% of the variation in the estimated returns.
+
+#FINAL PLOTS 
+
+##Plot 1
+
+```{r}
+ggplot(aes(x=BorrowerAPR),data=df)+
+geom_bar(binwidth = 0.02,color='red',fill='maroon') +
+geom_vline(xintercept = 0.21880, color='black',linetype='dotted',size=1.2)+
+geom_text(aes(x=0.24, label="Average APR", y=10000), colour="black",
+          angle=90,text=element_text(size=11)) +
+  labs(x="Borrower APR",y="Count",title="Borrower APR distribution")+
+  theme(plot.title = element_text(hjust = 0.5))
+#median(df$BorrowerAPR,na.rm = TRUE)
+#summary(df$BorrowerAPR)
+```
+
+The loan APR ranges from less than 5 % up to about 51 %. However, there are only 
+very few borrowers with such high and lower APR values. Most borrowers seems to
+have a APR from 10 % to 30 %. The median APR value is ~21 %. 
+
+##Plot 2
+
+
+```{r}
+ggplot(aes(x=BorrowerState,y=AverageLoanPerPerson),data=
+      subset(By_state_summary_high,By_state_summary_high$BorrowerState!=""))+
+  geom_histogram(stat = "identity",binwidth =0.1,fill='blue4')+
+  labs(x="Borrower State",y='Average loan amount per person (USD)',
+       title="Normalized total loan distribution by state")+xlab('State')+
+  theme(axis.text.x = element_text(angle = 90, hjust = 0.5))+
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+When I investigated the demography of borrowers by state, I found a higher 
+value of total loan amount and larger number of borrowers especially for the 
+states CA, TX, NY and FL. This led me to ask  is there any special 
+reason for this? are people from these states tend to borrow more likely
+compared to people from other states? In order to answer this question and 
+compare borrowers by state, I normalized the total loan amount  
+by the number of borrowers to see the average loan amount per person. As can be
+seen above the distribution of the normalized loan amount is almost nearly 
+uniform and the states even found to have normalized loan amount less than some 
+other states. This shows that the higher number of borrowers in these states 
+might be due to higher number population in the states so that the number of 
+applicants is also higher.
+
+##Plot 3
+
+```{r}
+ggplot(aes(x=LoanOriginationQuarter_new,y=LoanOriginalAmount),data=df)+
+  geom_bar(aes(fill=factor(Term)), stat="summary", fun.y=mean)+#facet_wrap(~Term)+
+  scale_x_yearqtr(format = "%YQ%q" , limit =c(as.yearqtr('2006 Q1'),
+                    as.yearqtr('2014 Q4')))+
+  labs(x=' Quarter Year', y=" Loan amount (USD)",
+       title="Loan distribution by quarter year")+
+  guides(fill=guide_legend(title = 'Loan Term'))+
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+The loan amount  borrowed until the third quarter of 2010  was less than 10000 
+and was only for a period of 36 months. It is interesting to see that both 
+higher loan amount of more than 10000 and flexible payment plans were 
+introduced after the fourth quarter of 2010.
+
+
+#REFLECTION
+
+The Prosper loan data set has 113,937 rows and 81 features. I explored some of 
+the 81 variables and tried to find interesting relationships among the  
+variables. My focus of investigation was mostly on the profile of the borrowers 
+such as income range, employment, credit score etc.. and the features of the 
+loan such as APR, estimated loss, loan amount with time etc..,. I used ggplot to
+check how these variable distributed and related. On the process of exploration, 
+I found many missing values in the data and I handeled the problem using R
+data cleaning tools such as from the deplyer package. Another challenge I 
+encountered was the datset contains a lot of outliers and noise that makes 
+hardly easy to extract the information I want using scatter or bar plots
+directly from the variables of interest. I handeled this problem by using
+transformations such as scaling the variables from linear to logarithimic,
+by averaging and choosing more approprioate ploting styles for 
+example using box plot instead of histograms and scatter plots. In this way 
+I was able find informative trends that explains the relationships between
+the variables of interest.
+ 
+From the exploration of the data, I found the APR varies from less than 1 % upto
+a little higher than 50 %. 
+The APR is related to the credit score of the borrowers. It is foud that 
+borrowers with high credit scores have good prosper rating and lower APR. It is 
+also found that most borrowers have loans in the range from 1-5000 for aperiod 
+of 36 months and the loan amount grown over time since the second quarter of
+2009. I estimated the percentage of loan status and found that about  10.74 % of 
+the loan is Chargedoff and 4.5 % is defaulted.	
+Finally,I used multivariat linear regression to predict the estimated return. 
+and the model explains up to 69% of the variation in the estimated returns. 
+Even though this rough estimation gives a clue about the possibility of using 
+machine learning to investigate the data, I recommend it to be done more 
+carefully with proper feature selection, careful algorithm  choices and proper
+parametric optimization. Since the data has many features, using combination of 
+principal component analysis (PCA) to reduce the dimensionality and univariate 
+feature selection could be helpful to develop a well tuned model of the data.
+
+# REFERENCES
+http://napitupulu-jon.appspot.com/posts/eda-prosper-loan.html
+https://rpubs.com/grace-pehl/prosper
+https://s3.amazonaws.com/content.udacity-data.com/courses/ud651/
+diamondsExample_2016-05.html
+http://stackoverflow.com/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
